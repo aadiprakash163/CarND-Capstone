@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+from scipy.spatial import KDTree
 
 STATE_COUNT_THRESHOLD = 3
 LOOK_AHEAD_LENGTH = 100
@@ -149,7 +150,7 @@ class TLDetector(object):
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
+        if(self.pose and self.waypoints and self.wp_tree):
             car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
             
             diff = len(self.waypoints.waypoints)
@@ -157,6 +158,7 @@ class TLDetector(object):
                 line = stop_line_positions[i]
                 line_idx = self.get_closest_waypoint(line[0], line[1])
                 d = line_idx - car_wp_idx
+
                 if d > 0 and d < diff :
                     diff = d
                     closest_light = light
@@ -166,13 +168,15 @@ class TLDetector(object):
 
         if closest_light:
             state = self.get_light_state(closest_light)
-            return light_wp_idx, state
+
+            return line_wp_idx, state
         
         # self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
     try:
+        print("Started TLDetector node\n")	
         TLDetector()
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start traffic node.')
