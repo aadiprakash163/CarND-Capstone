@@ -11,10 +11,11 @@ import tf
 import cv2
 import yaml
 from scipy.spatial import KDTree
+import numpy as np
+
 
 STATE_COUNT_THRESHOLD = 3
-LOOK_AHEAD_LENGTH = 100
-
+# LOOK_AHEAD_LENGTH = 100
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
@@ -90,12 +91,15 @@ class TLDetector(object):
         if self.state != state:
             self.state_count = 0
             self.state = state
+            
         elif self.state_count >= STATE_COUNT_THRESHOLD:
+            
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
+            
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
@@ -125,6 +129,7 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
+	rospy.logdebug("light state is: ", light.state)
         return(light.state)
 
         if(not self.has_image):
@@ -150,6 +155,9 @@ class TLDetector(object):
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
+
+        light_state_to_str = {0: "RED", 2: "GREEN", 1: "YELLOW", 4: "UNKNOWN"}
+
         if(self.pose and self.waypoints and self.wp_tree):
             car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
             
@@ -168,7 +176,8 @@ class TLDetector(object):
 
         if closest_light:
             state = self.get_light_state(closest_light)
-
+	    # rospy.loginfo("Closest wp: ", line_wp_idx, "     state: ", state)
+	    rospy.logwarn("Nearest traffic light state: {0}".format(light_state_to_str[state]))
             return line_wp_idx, state
         
         # self.waypoints = None

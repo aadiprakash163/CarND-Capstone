@@ -38,7 +38,6 @@ that we have created in the `__init__` function.
 class DBWNode(object):
     def __init__(self):
         rospy.init_node('dbw_node')   
-        
         vehicle_mass = rospy.get_param('~vehicle_mass', 1736.35)
         decel_limit = rospy.get_param('~decel_limit', -5)
         wheel_radius = rospy.get_param('~wheel_radius', 0.2413)
@@ -139,4 +138,5 @@ class DBWNode(object):
 
 
 if __name__ == '__main__':
+    print("Started DBW node")	
     DBWNode()
