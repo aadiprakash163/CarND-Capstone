@@ -12,24 +12,33 @@ import cv2
 import yaml
 from scipy.spatial import KDTree
 import numpy as np
-
+import rospkg
+import os
 
 STATE_COUNT_THRESHOLD = 3
 # LOOK_AHEAD_LENGTH = 100
+
 class TLDetector(object):
     def __init__(self):
-        rospy.init_node('tl_detector')
+        rospy.init_node('tl_detector', log_level=rospy.DEBUG)
 
         self.pose = None
         self.waypoints = None
         self.camera_image = None
         self.lights = []
 
+        self.generate_dataset = True
+        self.dataset_path = rospkg.get_ros_package_path().split(':')[0] + '/images/'
+        if self.generate_dataset:
+            if not os.path.exists(self.dataset_path):
+                os.makedirs(self.dataset_path)
+            rospy.loginfo("Dataset will be created at %s", self.dataset_path)
+            self.dataset_file = open(self.dataset_path + 'img_dataset.tsv', 'a')
+
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         sub3 = rospy.Subscriber('/image_color', Image, self.image_cb)
         sub4 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
@@ -38,7 +47,6 @@ class TLDetector(object):
         simulator. When testing on the vehicle, the color state will not be available. You'll need to
         rely on the position of the light and the camera image to predict it.
         '''
-        
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -78,6 +86,9 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
+
+        rospy.logdebug("got image")
+
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
@@ -129,17 +140,26 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-	rospy.logdebug("light state is: ", light.state)
-        return(light.state)
 
-        if(not self.has_image):
-            self.prev_light_loc = None
-            return False
+        # TODO: return light.state from classifier
+        # if(not self.has_image):
+        #     self.prev_light_loc = None
+        #     return False
 
+        # cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+
+        # #Get classification
+        # return self.light_classifier.get_classification(cv_image)
+
+        rospy.logdebug("light state is: %s", light.state)
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        if self.generate_dataset and self.has_image and self.state != light.state:
+            filname = str(uuid.uuid4()) + '.jpg'
+            filepath = self.dataset_path + filname
+            cv2.imwrite(filepath, cv_image)
+            dataset_file.write(filname + "\t" + str(light.state) + "\n")
 
-        #Get classification
-        return self.light_classifier.get_classification(cv_image)
+        return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
