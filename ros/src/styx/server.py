@@ -60,8 +60,7 @@ def image(sid, data):
     bridge.publish_camera(data)
 
 if __name__ == '__main__':
-	
-    print("Server started")
+
     # wrap Flask application with engineio's middleware
     app = socketio.Middleware(sio, app)
 

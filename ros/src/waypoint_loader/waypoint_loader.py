@@ -18,8 +18,7 @@ MAX_DECEL = 1.0
 class WaypointLoader(object):
 
     def __init__(self):
-        print("Waypoint loader!!!!!!!!!!!!!!!!!")
-        rospy.init_node('waypoint_loader')
+        rospy.init_node('waypoint_loader', log_level=rospy.DEBUG)
 
         self.pub = rospy.Publisher('/base_waypoints', Lane, queue_size=1, latch=True)
 
@@ -82,7 +81,6 @@ class WaypointLoader(object):
 
 if __name__ == '__main__':
     try:
-        print("Waypoint loader started\n")
         WaypointLoader()
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start waypoint node.')
